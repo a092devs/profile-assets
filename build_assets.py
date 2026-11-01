@@ -14,22 +14,8 @@ from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 
 OUT = Path(__file__).parent / "assets"
-(OUT / "icons").mkdir(parents=True, exist_ok=True)
 
 USER = "a092devs"
-ICON_SLUGS = [
-    "kotlin", "openjdk", "cplusplus", "python", "fastapi", "nodedotjs", "react",
-    "javascript", "tailwindcss", "postgresql", "docker", "git", "linux",
-]
-# Brand marks come from the simple-icons set (CC0); the hex values are the
-# published brand colours for each technology.
-BRAND_HEX = {
-    "kotlin": "7F52FF", "openjdk": "007396", "cplusplus": "00599C",
-    "python": "3776AB", "fastapi": "009485", "nodedotjs": "339933",
-    "react": "61DAFB", "javascript": "F7DF1E", "tailwindcss": "06B6D4",
-    "postgresql": "4169E1", "docker": "2496ED", "git": "F05032",
-    "linux": "FCC624",
-}
 def find_font(*names):
     """Works both on this Windows box and on the ubuntu runner that refreshes nightly."""
     import glob
@@ -42,15 +28,6 @@ def find_font(*names):
             if hits:
                 return hits[0]
     return None
-
-
-# Header link tiles. X uses a lifted charcoal rather than pure black so the tile
-# edge stays visible against the dark theme.
-# Social marks come from Bootstrap Icons (MIT): simple-icons dropped linkedin, and
-# one source keeps the three marks visually consistent.
-BS = "https://raw.githubusercontent.com/twbs/icons/main/icons/{}.svg"
-SOCIAL = [("linkedin", "0A66C2", "BS_linkedin"), ("x", "24292F", "BS_x"),
-          ("gmail", "EA4335", "BS_envelope-fill")]
 
 
 FONT = find_font("consola.ttf", "DejaVuSansMono.ttf", "LiberationMono-Regular.ttf")
@@ -74,11 +51,6 @@ def api(path):
     return json.loads(raw)
 
 
-def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "profile-assets-build"})
-    return urllib.request.urlopen(req, timeout=30).read()
-
-
 def repo_languages():
     """GitHub exposes no user-languages endpoint, so sum it across owned repos."""
     totals = {}
@@ -92,81 +64,6 @@ def repo_languages():
             pass
     return sorted([{"name": k, "bytes": v} for k, v in totals.items()],
                   key=lambda l: -l["bytes"])
-
-
-def icon_mask(slug, size=256, url=None):
-    """Rasterise an SVG mark into a greyscale silhouette mask."""
-    if url is None:
-        url = f"https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/{slug}.svg"
-    drawing = svg2rlg(io.BytesIO(fetch(url)))
-    if drawing is None:
-        raise RuntimeError(f"{slug}: svg parse failed")
-    longest = max(drawing.width, drawing.height) or 1
-    scale = float(size) / longest
-    drawing.scale(scale, scale)
-    drawing.width, drawing.height = drawing.width * scale, drawing.height * scale
-    png = io.BytesIO()
-    renderPM.drawToFile(drawing, png, fmt="PNG")
-    png.seek(0)
-    raster = Image.open(png).convert("RGBA")
-    alpha = raster.getchannel("A")
-    if alpha.getextrema()[0] < 250:
-        # Renderer honoured transparency: use it directly.
-        return alpha
-    # Flat opaque canvas: the mark is the dark part of the luminance.
-    return raster.convert("L").point(lambda v: 255 - v)
-
-
-def build_icons():
-    made = []
-    for slug in ICON_SLUGS:
-        try:
-            mask = icon_mask(slug)
-        except Exception as exc:
-            print(f"  ! {slug}: {exc}")
-            continue
-        hexc = BRAND_HEX.get(slug, "6e7781")
-        r, g, b = (int(hexc[i:i + 2], 16) for i in (0, 2, 4))
-        solid = Image.new("RGBA", mask.size, (r, g, b, 255))
-        solid.putalpha(mask)
-        solid = solid.resize((64, 64), Image.LANCZOS)
-        solid.save(OUT / "icons" / f"{slug}.png")
-        made.append(slug)
-    print(f"icons: {len(made)}/{len(ICON_SLUGS)}")
-    return made
-
-
-def build_badges():
-    """Filled rounded tiles with a white glyph, so the header links stay legible on
-    both the light and dark GitHub themes."""
-    (OUT / "badges").mkdir(exist_ok=True)
-    side = 128
-    made = []
-    for slug, hexc, src in SOCIAL:
-        try:
-            url = BS.format(src.split("_", 1)[1])
-            mask = icon_mask(slug, size=side, url=url)
-            box = mask.getbbox()
-            if not box:
-                raise RuntimeError("empty mark")
-            mark = mask.crop(box)
-        except Exception as exc:
-            print(f"  ! badge {slug}: {exc}")
-            continue
-        inner = int(side * 0.56)
-        fit = inner / max(mark.size)
-        mark = mark.resize((max(1, int(mark.width * fit)), max(1, int(mark.height * fit))),
-                           Image.LANCZOS)
-        r, g, b = (int(hexc[i:i + 2], 16) for i in (0, 2, 4))
-        tile = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-        d = ImageDraw.Draw(tile)
-        d.rounded_rectangle([0, 0, side - 1, side - 1], radius=side * 0.22, fill=(r, g, b, 255))
-        tile.paste(Image.new("RGBA", mark.size, (255, 255, 255, 255)),
-                   ((side - mark.width) // 2, (side - mark.height) // 2), mark)
-        tile.save(OUT / "badges" / f"{slug}.png")
-        made.append(slug)
-    print(f"badges: {len(made)}/{len(SOCIAL)}")
-    return made
 
 
 def build_typing(theme, name):
@@ -236,10 +133,6 @@ def build_stats(theme, name, counts, langs):
 UI_FONT = find_font("segoeui.ttf", "DejaVuSans.ttf", "LiberationSans-Regular.ttf")
 UI_FONT_B = find_font("segoeuib.ttf", "DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf")
 
-PILLS = [("linkedin", "0A66C2", "LinkedIn", "BS_linkedin"),
-         ("x", "24292F", "X", "BS_x"),
-         ("gmail", "EA4335", "Email", "BS_envelope-fill")]
-
 LANG_COLORS = {
     "kotlin": "#a855f7", "java": "#b07219", "python": "#3572a5",
     "javascript": "#f1e05a", "css": "#563d7c", "c++": "#f34b7d",
@@ -248,46 +141,6 @@ LANG_COLORS = {
 
 CARD_REPOS = ["NexAlloyNext", "NexAlloyNext-Patches", "SystemFixes",
               "OpsVista", "DataFoundry", "GameUnlocker"]
-
-
-def _crop_mark(mask, box, target):
-    m = mask.crop(box)
-    fit = target / max(m.size)
-    return m.resize((max(1, int(m.width * fit)), max(1, int(m.height * fit))), Image.LANCZOS)
-
-
-def build_pills():
-    """Shields-style pills: brand block with a white mark, then the label."""
-    (OUT / "pills").mkdir(exist_ok=True)
-    h = 34
-    label_font = ImageFont.truetype(UI_FONT_B, 17)
-    made = []
-    for slug, hexc, label, src in PILLS:
-        try:
-            mask = icon_mask(slug, size=128, url=BS.format(src.split("_", 1)[1]))
-            mark = _crop_mark(mask, mask.getbbox(), 17)
-        except Exception as exc:
-            print(f"  ! pill {slug}: {exc}")
-            continue
-        probe = ImageDraw.Draw(Image.new("L", (8, 8)))
-        tw = int(probe.textlength(label, font=label_font))
-        lw = tw + 26
-        w = h + lw
-        r, g, b = (int(hexc[i:i + 2], 16) for i in (0, 2, 4))
-        im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        d = ImageDraw.Draw(im)
-        d.rounded_rectangle([0, 0, w - 1, h - 1], radius=6, fill=(36, 41, 46, 255))
-        # left brand block: square on the right edge, rounded on the left
-        d.rounded_rectangle([0, 0, h * 2 - 1, h - 1], radius=6, fill=(r, g, b, 255))
-        d.rectangle([h, 0, h * 2, h - 1], fill=(r, g, b, 255))
-        im.paste(Image.new("RGBA", mark.size, (255, 255, 255, 255)),
-                 ((h - mark.width) // 2, (h - mark.height) // 2), mark)
-        d.text((h + 13, h / 2), label, font=label_font, fill=(245, 247, 250, 255),
-               anchor="lm")
-        im.save(OUT / "pills" / f"{slug}.png")
-        made.append((slug, w))
-    print(f"pills: {len(made)} {made}")
-    return made
 
 
 def build_cards():
@@ -373,9 +226,6 @@ def _fork(d, x, cy, color):
 
 
 def main():
-    build_icons()
-    build_badges()
-    build_pills()
     build_cards()
     build_typing(DARK, "typing-dark.gif")
     build_typing(LIGHT, "typing-light.gif")
