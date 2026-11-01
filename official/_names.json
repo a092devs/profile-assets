@@ -1,0 +1,18 @@
+{
+ "kotlin": "logos:kotlin",
+ "java": "logos:java",
+ "cpp": "logos:c-plusplus",
+ "python": "logos:python",
+ "fastapi": "logos:fastapi",
+ "nodejs": "logos:nodejs",
+ "react": "logos:react",
+ "javascript": "logos:javascript",
+ "tailwindcss": "logos:tailwindcss",
+ "postgresql": "logos:postgresql",
+ "docker": "logos:docker-icon",
+ "git": "logos:git-icon",
+ "linux": "logos:linux-tux",
+ "linkedin": "logos:linkedin-icon",
+ "x": "logos:x",
+ "gmail": "logos:google-gmail"
+}
