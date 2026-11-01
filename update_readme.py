@@ -1,12 +1,15 @@
 """Rebuild the profile README.
 
-Layout notes, all learned the hard way against GitHub's renderer:
+Layout notes, each learned by breaking it once against GitHub's renderer:
 
-* Cards go in <p align="center"> rows, not a <table>. GitHub's sanitizer drops
-  <picture>/<source> inside table cells, which silently blanked every card.
-* Social links are single badge images. Inline <img> plus text cannot be trusted to
+* Cards sit two-per-row inside a single-line <p align="center">. A blank line anywhere
+  inside that block closes it, and GitHub then renders each card as its own
+  left-aligned paragraph — which is how the grid collapsed into one column.
+* Not a <table>: GitHub's sanitizer drops <picture>/<source> inside table cells,
+  which silently blanked every card.
+* Social links are single badge images; inline <img> plus text cannot be trusted to
   align because each mark has different internal padding.
-* Stack marks carry valign="middle"; inline images default to baseline.
+* Stack marks carry valign="middle" since inline images default to baseline.
 """
 import pathlib
 
@@ -31,7 +34,7 @@ HEIGHT = 42
 def mark(key, label, themed=False):
     if themed:
         return (
-            f'<picture>'
+            '<picture>'
             f'<source media="(prefers-color-scheme: dark)" srcset="{P}/{key}-dark.svg">'
             f'<source media="(prefers-color-scheme: light)" srcset="{P}/{key}.svg">'
             f'<img src="{P}/{key}.svg" height="{HEIGHT}" valign="middle" '
@@ -51,40 +54,36 @@ def card(name):
     )
 
 
-def block(items):
-    return '<p align="center">\n\n' + "\n\n".join(items) + "\n\n</p>"
+def row(*parts):
+    """One HTML block, no blank lines, so the parts stay on the same line."""
+    return '<p align="center">' + " &nbsp;&nbsp;&nbsp; ".join(parts) + "</p>"
 
 
-card_rows = [block([card(n) for n in CARDS[i:i + 2]]) for i in range(0, len(CARDS), 2)]
+card_rows = [row(*[card(n) for n in CARDS[i:i + 2]]) for i in range(0, len(CARDS), 2)]
+stack_line = row(*[mark(k, l, themed=(k == "linux")) for k, l in STACK])
 
-stack_line = block([
-    " &nbsp; ".join(mark(k, l, themed=(k == "linux")) for k, l in STACK)
-])
-
-social_line = block([
-    " &nbsp;&nbsp;&nbsp; ".join(
-        f'<a href="{href}"><img src="{B}/{name}.png" height="30" alt="{alt}" /></a>'
-        for href, name, alt in [
-            ("https://www.linkedin.com/in/a092devs", "linkedin", "LinkedIn"),
-            ("https://twitter.com/a092devs", "x", "X"),
-            ("mailto:arsalanakhtar0@gmail.com", "envelope-src", "Email"),
-        ]
-    )
+social_line = row(*[
+    f'<a href="{href}"><img src="{B}/{name}.png" height="30" alt="{alt}" /></a>'
+    for href, name, alt in [
+        ("https://www.linkedin.com/in/a092devs", "linkedin", "LinkedIn"),
+        ("https://twitter.com/a092devs", "x", "X"),
+        ("mailto:arsalanakhtar0@gmail.com", "envelope-src", "Email"),
+    ]
 ])
 
 banner = (
-    '<picture>\n'
-    f'  <source media="(prefers-color-scheme: dark)" srcset="{A}/typing-dark.gif">\n'
-    f'  <source media="(prefers-color-scheme: light)" srcset="{A}/typing-light.gif">\n'
-    f'  <img src="{A}/typing-dark.gif" alt="Android, web and data work" width="620" />\n'
+    '<picture>'
+    f'<source media="(prefers-color-scheme: dark)" srcset="{A}/typing-dark.gif">'
+    f'<source media="(prefers-color-scheme: light)" srcset="{A}/typing-light.gif">'
+    f'<img src="{A}/typing-dark.gif" alt="Android, web and data work" width="620" />'
     '</picture>'
 )
 
 stats = (
-    '<picture>\n'
-    f'  <source media="(prefers-color-scheme: dark)" srcset="{A}/stats-dark.png">\n'
-    f'  <source media="(prefers-color-scheme: light)" srcset="{A}/stats-light.png">\n'
-    f'  <img src="{A}/stats-dark.png" alt="GitHub stats" width="420" />\n'
+    '<picture>'
+    f'<source media="(prefers-color-scheme: dark)" srcset="{A}/stats-dark.png">'
+    f'<source media="(prefers-color-scheme: light)" srcset="{A}/stats-light.png">'
+    f'<img src="{A}/stats-dark.png" alt="GitHub stats" width="420" />'
     '</picture>'
 )
 
@@ -111,7 +110,7 @@ on top of it. Most of what I do is reading code I didn't write and getting it to
 
 {chr(10).join(card_rows)}
 
-<p align="center">The rest of it lives in the <a href="https://github.com/a092devs?tab=repositories">repository list</a>.</p>
+{row('<a href="https://github.com/a092devs?tab=repositories">The rest of it lives in the repository list</a>')}
 
 ---
 
@@ -131,4 +130,5 @@ on top of it. Most of what I do is reading code I didn't write and getting it to
 pathlib.Path("profile_README.md").write_text(doc, encoding="utf-8")
 b = doc.encode("utf-8")
 print("bytes:", len(b), "| backslashes:", b.count(bytes([92])))
-print("cards:", doc.count("cards/"), "| badges:", doc.count("/badges/"), "| marks:", doc.count(f"{P}/"))
+print("card rows:", len(card_rows), "| marks:", doc.count(f'{P}/'), "| badges:", doc.count(f"{B}/"))
+print("blank lines inside any <p>:", doc.count("<p align=\"center\">\n\n"))
