@@ -10,11 +10,7 @@
 
 <br>
 
-<a href="https://www.linkedin.com/in/a092devs"><img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/pills/linkedin.png" height="26" alt="LinkedIn" /></a>
-&nbsp;
-<a href="https://twitter.com/a092devs"><img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/pills/x.png" height="26" alt="X" /></a>
-&nbsp;
-<a href="mailto:arsalanakhtar0@gmail.com"><img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/pills/gmail.png" height="26" alt="Email" /></a>
+<a href="https://www.linkedin.com/in/a092devs"><img src="https://a092devs.github.io/profile-assets/icons/linkedin.svg" height="26" width="26" valign="middle" alt="LinkedIn" />&nbsp;<b>LinkedIn</b></a> &nbsp;&nbsp;&nbsp; <a href="https://twitter.com/a092devs"><img src="https://a092devs.github.io/profile-assets/icons/x.svg" height="26" width="26" valign="middle" alt="X" />&nbsp;<b>X</b></a> &nbsp;&nbsp;&nbsp; <a href="mailto:arsalanakhtar0@gmail.com"><img src="https://a092devs.github.io/profile-assets/icons/gmail.svg" height="26" width="26" valign="middle" alt="Email" />&nbsp;<b>Email</b></a>
 
 </div>
 
@@ -88,19 +84,19 @@ on top of it. Most of what I do is reading code I didn't write and getting it to
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/kotlin.png" width="44" height="44" alt="Kotlin" title="Kotlin" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/openjdk.png" width="44" height="44" alt="Java" title="Java" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/cplusplus.png" width="44" height="44" alt="C++" title="C++" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/python.png" width="44" height="44" alt="Python" title="Python" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/fastapi.png" width="44" height="44" alt="FastAPI" title="FastAPI" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/nodedotjs.png" width="44" height="44" alt="Node.js" title="Node.js" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/react.png" width="44" height="44" alt="React" title="React" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/javascript.png" width="44" height="44" alt="JavaScript" title="JavaScript" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/tailwindcss.png" width="44" height="44" alt="Tailwind CSS" title="Tailwind CSS" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/postgresql.png" width="44" height="44" alt="PostgreSQL" title="PostgreSQL" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/docker.png" width="44" height="44" alt="Docker" title="Docker" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/git.png" width="44" height="44" alt="Git" title="Git" />&nbsp;
-<img src="https://raw.githubusercontent.com/a092devs/profile-assets/main/assets/icons/linux.png" width="44" height="44" alt="Linux" title="Linux" />
+<img src="https://a092devs.github.io/profile-assets/icons/kotlin.svg" width="46" height="46" alt="Kotlin" title="Kotlin" />
+<img src="https://a092devs.github.io/profile-assets/icons/java.svg" width="46" height="46" alt="Java" title="Java" />
+<img src="https://a092devs.github.io/profile-assets/icons/cpp.svg" width="46" height="46" alt="C++" title="C++" />
+<img src="https://a092devs.github.io/profile-assets/icons/python.svg" width="46" height="46" alt="Python" title="Python" />
+<img src="https://a092devs.github.io/profile-assets/icons/fastapi.svg" width="46" height="46" alt="FastAPI" title="FastAPI" />
+<img src="https://a092devs.github.io/profile-assets/icons/nodejs.svg" width="46" height="46" alt="Node.js" title="Node.js" />
+<img src="https://a092devs.github.io/profile-assets/icons/react.svg" width="46" height="46" alt="React" title="React" />
+<img src="https://a092devs.github.io/profile-assets/icons/javascript.svg" width="46" height="46" alt="JavaScript" title="JavaScript" />
+<img src="https://a092devs.github.io/profile-assets/icons/tailwindcss.svg" width="46" height="46" alt="Tailwind CSS" title="Tailwind CSS" />
+<img src="https://a092devs.github.io/profile-assets/icons/postgresql.svg" width="46" height="46" alt="PostgreSQL" title="PostgreSQL" />
+<img src="https://a092devs.github.io/profile-assets/icons/docker.svg" width="46" height="46" alt="Docker" title="Docker" />
+<img src="https://a092devs.github.io/profile-assets/icons/git.svg" width="46" height="46" alt="Git" title="Git" />
+<img src="https://a092devs.github.io/profile-assets/icons/linux.svg" width="46" height="46" alt="Linux" title="Linux" />
 
 </div>
 
