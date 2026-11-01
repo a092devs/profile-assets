@@ -43,6 +43,19 @@ def find_font(*names):
     return None
 
 
+# Header link tiles. X uses a lifted charcoal rather than pure black so the tile
+# edge stays visible against the dark theme.
+SOCIAL = [("linkedin", "0A66C2"), ("x", "24292F"), ("gmail", "EA4335")]
+TEXT_FALLBACK = {"linkedin": "in"}
+
+
+def text_mark(letters, side):
+    f = ImageFont.truetype(FONT_B, int(side * 0.46))
+    im = Image.new("L", (side, side), 0)
+    d = ImageDraw.Draw(im)
+    d.text((side / 2, side / 2), letters, font=f, fill=255, anchor="mm")
+    return im
+
 FONT = find_font("consola.ttf", "DejaVuSansMono.ttf", "LiberationMono-Regular.ttf")
 FONT_B = find_font("consolab.ttf", "DejaVuSansMono-Bold.ttf", "LiberationMono-Bold.ttf") or FONT
 
@@ -84,42 +97,82 @@ def repo_languages():
                   key=lambda l: -l["bytes"])
 
 
+def icon_mask(slug, size=256):
+    """Rasterise a simple-icons mark into a greyscale silhouette mask."""
+    url = f"https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/{slug}.svg"
+    drawing = svg2rlg(io.BytesIO(fetch(url)))
+    if drawing is None:
+        raise RuntimeError(f"{slug}: svg parse failed")
+    longest = max(drawing.width, drawing.height) or 1
+    scale = float(size) / longest
+    drawing.scale(scale, scale)
+    drawing.width, drawing.height = drawing.width * scale, drawing.height * scale
+    png = io.BytesIO()
+    renderPM.drawToFile(drawing, png, fmt="PNG")
+    png.seek(0)
+    raster = Image.open(png).convert("RGBA")
+    alpha = raster.getchannel("A")
+    if alpha.getextrema()[0] < 250:
+        # Renderer honoured transparency: use it directly.
+        return alpha
+    # Flat opaque canvas: the mark is the dark part of the luminance.
+    return raster.convert("L").point(lambda v: 255 - v)
+
+
 def build_icons():
     made = []
     for slug in ICON_SLUGS:
-        url = f"https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/{slug}.svg"
         try:
-            data = fetch(url)
+            mask = icon_mask(slug)
         except Exception as exc:
-            print(f"  ! {slug}: fetch failed ({exc})")
+            print(f"  ! {slug}: {exc}")
             continue
-        drawing = svg2rlg(io.BytesIO(data))
-        if drawing is None:
-            print(f"  ! {slug}: parse failed")
-            continue
-        longest = max(drawing.width, drawing.height) or 1
-        scale = 256.0 / longest
-        drawing.scale(scale, scale)
-        drawing.width, drawing.height = drawing.width * scale, drawing.height * scale
-        png = io.BytesIO()
-        renderPM.drawToFile(drawing, png, fmt="PNG")
-        png.seek(0)
-        raster = Image.open(png).convert("RGBA")
-        alpha = raster.getchannel("A")
-        if alpha.getextrema()[0] < 250:
-            # Renderer honoured transparency: use it directly.
-            mask = alpha
-        else:
-            # Flat opaque canvas: the mark is the dark part of the luminance.
-            mask = raster.convert("L").point(lambda v: 255 - v)
         hexc = BRAND_HEX.get(slug, "6e7781")
         r, g, b = (int(hexc[i:i + 2], 16) for i in (0, 2, 4))
-        solid = Image.new("RGBA", raster.size, (r, g, b, 255))
+        solid = Image.new("RGBA", mask.size, (r, g, b, 255))
         solid.putalpha(mask)
         solid = solid.resize((64, 64), Image.LANCZOS)
         solid.save(OUT / "icons" / f"{slug}.png")
         made.append(slug)
     print(f"icons: {len(made)}/{len(ICON_SLUGS)}")
+    return made
+
+
+def build_badges():
+    """Filled rounded tiles with a white glyph, so the header links stay legible on
+    both the light and dark GitHub themes."""
+    (OUT / "badges").mkdir(exist_ok=True)
+    side = 128
+    made = []
+    for slug, hexc in SOCIAL:
+        try:
+            mask = icon_mask(slug, size=side)
+            box = mask.getbbox()
+            if not box:
+                raise RuntimeError("empty mark")
+            mark = mask.crop(box)
+        except Exception as exc:
+            # simple-icons dropped some trademarked marks, so fall back to drawing
+            # the wordmark tile by hand rather than shipping a missing icon.
+            letters = TEXT_FALLBACK.get(slug)
+            if not letters:
+                print(f"  ! badge {slug}: {exc}")
+                continue
+            print(f"  . badge {slug}: drawn tile ({exc})")
+            mark = text_mark(letters, side)
+        inner = int(side * 0.56)
+        fit = inner / max(mark.size)
+        mark = mark.resize((max(1, int(mark.width * fit)), max(1, int(mark.height * fit))),
+                           Image.LANCZOS)
+        r, g, b = (int(hexc[i:i + 2], 16) for i in (0, 2, 4))
+        tile = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+        d = ImageDraw.Draw(tile)
+        d.rounded_rectangle([0, 0, side - 1, side - 1], radius=side * 0.22, fill=(r, g, b, 255))
+        tile.paste(Image.new("RGBA", mark.size, (255, 255, 255, 255)),
+                   ((side - mark.width) // 2, (side - mark.height) // 2), mark)
+        tile.save(OUT / "badges" / f"{slug}.png")
+        made.append(slug)
+    print(f"badges: {len(made)}/{len(SOCIAL)}")
     return made
 
 
@@ -189,6 +242,7 @@ def build_stats(theme, name, counts, langs):
 
 def main():
     build_icons()
+    build_badges()
     build_typing(DARK, "typing-dark.gif")
     build_typing(LIGHT, "typing-light.gif")
 
