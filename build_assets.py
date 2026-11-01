@@ -4,6 +4,7 @@ serves repo-hosted SVG as text/plain, which breaks <img>.
 """
 import io
 import json
+import math
 import subprocess
 import urllib.request
 from pathlib import Path
@@ -45,16 +46,12 @@ def find_font(*names):
 
 # Header link tiles. X uses a lifted charcoal rather than pure black so the tile
 # edge stays visible against the dark theme.
-SOCIAL = [("linkedin", "0A66C2"), ("x", "24292F"), ("gmail", "EA4335")]
-TEXT_FALLBACK = {"linkedin": "in"}
+# Social marks come from Bootstrap Icons (MIT): simple-icons dropped linkedin, and
+# one source keeps the three marks visually consistent.
+BS = "https://raw.githubusercontent.com/twbs/icons/main/icons/{}.svg"
+SOCIAL = [("linkedin", "0A66C2", "BS_linkedin"), ("x", "24292F", "BS_x"),
+          ("gmail", "EA4335", "BS_envelope-fill")]
 
-
-def text_mark(letters, side):
-    f = ImageFont.truetype(FONT_B, int(side * 0.46))
-    im = Image.new("L", (side, side), 0)
-    d = ImageDraw.Draw(im)
-    d.text((side / 2, side / 2), letters, font=f, fill=255, anchor="mm")
-    return im
 
 FONT = find_font("consola.ttf", "DejaVuSansMono.ttf", "LiberationMono-Regular.ttf")
 FONT_B = find_font("consolab.ttf", "DejaVuSansMono-Bold.ttf", "LiberationMono-Bold.ttf") or FONT
@@ -97,9 +94,10 @@ def repo_languages():
                   key=lambda l: -l["bytes"])
 
 
-def icon_mask(slug, size=256):
-    """Rasterise a simple-icons mark into a greyscale silhouette mask."""
-    url = f"https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/{slug}.svg"
+def icon_mask(slug, size=256, url=None):
+    """Rasterise an SVG mark into a greyscale silhouette mask."""
+    if url is None:
+        url = f"https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/{slug}.svg"
     drawing = svg2rlg(io.BytesIO(fetch(url)))
     if drawing is None:
         raise RuntimeError(f"{slug}: svg parse failed")
@@ -144,22 +142,17 @@ def build_badges():
     (OUT / "badges").mkdir(exist_ok=True)
     side = 128
     made = []
-    for slug, hexc in SOCIAL:
+    for slug, hexc, src in SOCIAL:
         try:
-            mask = icon_mask(slug, size=side)
+            url = BS.format(src.split("_", 1)[1])
+            mask = icon_mask(slug, size=side, url=url)
             box = mask.getbbox()
             if not box:
                 raise RuntimeError("empty mark")
             mark = mask.crop(box)
         except Exception as exc:
-            # simple-icons dropped some trademarked marks, so fall back to drawing
-            # the wordmark tile by hand rather than shipping a missing icon.
-            letters = TEXT_FALLBACK.get(slug)
-            if not letters:
-                print(f"  ! badge {slug}: {exc}")
-                continue
-            print(f"  . badge {slug}: drawn tile ({exc})")
-            mark = text_mark(letters, side)
+            print(f"  ! badge {slug}: {exc}")
+            continue
         inner = int(side * 0.56)
         fit = inner / max(mark.size)
         mark = mark.resize((max(1, int(mark.width * fit)), max(1, int(mark.height * fit))),
@@ -240,9 +233,150 @@ def build_stats(theme, name, counts, langs):
     print(f"{name}: {im.size[0]}x{im.size[1]}")
 
 
+UI_FONT = find_font("segoeui.ttf", "DejaVuSans.ttf", "LiberationSans-Regular.ttf")
+UI_FONT_B = find_font("segoeuib.ttf", "DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf")
+
+PILLS = [("linkedin", "0A66C2", "LinkedIn", "BS_linkedin"),
+         ("x", "24292F", "X", "BS_x"),
+         ("gmail", "EA4335", "Email", "BS_envelope-fill")]
+
+LANG_COLORS = {
+    "kotlin": "#a855f7", "java": "#b07219", "python": "#3572a5",
+    "javascript": "#f1e05a", "css": "#563d7c", "c++": "#f34b7d",
+    "html": "#e34c26", "typescript": "#3178c6", "shell": "#89e051",
+}
+
+CARD_REPOS = ["NexAlloyNext", "NexAlloyNext-Patches", "SystemFixes",
+              "OpsVista", "DataFoundry", "GameUnlocker"]
+
+
+def _crop_mark(mask, box, target):
+    m = mask.crop(box)
+    fit = target / max(m.size)
+    return m.resize((max(1, int(m.width * fit)), max(1, int(m.height * fit))), Image.LANCZOS)
+
+
+def build_pills():
+    """Shields-style pills: brand block with a white mark, then the label."""
+    (OUT / "pills").mkdir(exist_ok=True)
+    h = 34
+    label_font = ImageFont.truetype(UI_FONT_B, 17)
+    made = []
+    for slug, hexc, label, src in PILLS:
+        try:
+            mask = icon_mask(slug, size=128, url=BS.format(src.split("_", 1)[1]))
+            mark = _crop_mark(mask, mask.getbbox(), 17)
+        except Exception as exc:
+            print(f"  ! pill {slug}: {exc}")
+            continue
+        probe = ImageDraw.Draw(Image.new("L", (8, 8)))
+        tw = int(probe.textlength(label, font=label_font))
+        lw = tw + 26
+        w = h + lw
+        r, g, b = (int(hexc[i:i + 2], 16) for i in (0, 2, 4))
+        im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        d = ImageDraw.Draw(im)
+        d.rounded_rectangle([0, 0, w - 1, h - 1], radius=6, fill=(36, 41, 46, 255))
+        # left brand block: square on the right edge, rounded on the left
+        d.rounded_rectangle([0, 0, h * 2 - 1, h - 1], radius=6, fill=(r, g, b, 255))
+        d.rectangle([h, 0, h * 2, h - 1], fill=(r, g, b, 255))
+        im.paste(Image.new("RGBA", mark.size, (255, 255, 255, 255)),
+                 ((h - mark.width) // 2, (h - mark.height) // 2), mark)
+        d.text((h + 13, h / 2), label, font=label_font, fill=(245, 247, 250, 255),
+               anchor="lm")
+        im.save(OUT / "pills" / f"{slug}.png")
+        made.append((slug, w))
+    print(f"pills: {len(made)} {made}")
+    return made
+
+
+def build_cards():
+    """Repo cards in GitHub's pinned-card style, one dark and one light variant."""
+    (OUT / "cards").mkdir(exist_ok=True)
+    W, H = 820, 260
+    title_f = ImageFont.truetype(UI_FONT_B, 32)
+    desc_f = ImageFont.truetype(UI_FONT, 24)
+    meta_f = ImageFont.truetype(UI_FONT, 22)
+    themes = {"dark": dict(bg="#0d1117", border="#30363d", title="#58a6ff",
+                           desc="#8b949e", meta="#7d8590", dot_fg="#c9d1d9"),
+              "light": dict(bg="#ffffff", border="#d0d7de", title="#0969da",
+                            desc="#57606a", meta="#656d76", dot_fg="#1f2328")}
+    made = []
+    for name in CARD_REPOS:
+        try:
+            info = api(f"repos/{USER}/{name}")
+        except Exception as exc:
+            print(f"  ! card {name}: {exc}")
+            continue
+        desc = (info.get("description") or "").strip()
+        lang = info.get("language") or ""
+        stars = info.get("stargazers_count", 0)
+        forks = info.get("forks_count", 0)
+        for theme, c in themes.items():
+            im = Image.new("RGB", (W, H), c["bg"])
+            d = ImageDraw.Draw(im)
+            d.rounded_rectangle([1, 1, W - 2, H - 2], 14, outline=c["border"], width=2)
+            d.text((34, 30), name, font=title_f, fill=c["title"])
+            # wrap description to three lines
+            words, lines, cur = desc.split(), [], ""
+            for wd in words:
+                trial = (cur + " " + wd).strip()
+                if d.textlength(trial, font=desc_f) > W - 76:
+                    lines.append(cur); cur = wd
+                else:
+                    cur = trial
+            if cur:
+                lines.append(cur)
+            y = 92
+            for ln in lines[:3]:
+                d.text((34, y), ln, font=desc_f, fill=c["desc"])
+                y += 34
+            if len(lines) > 3:
+                d.text((34, y - 6), "...", font=desc_f, fill=c["desc"])
+            mx = 34
+            my = H - 56
+            if lang:
+                d.ellipse([mx, my + 5, mx + 15, my + 20],
+                          fill=LANG_COLORS.get(lang.lower(), "#8b949e"))
+                d.text((mx + 24, my), lang, font=meta_f, fill=c["meta"])
+                mx += 24 + d.textlength(lang, font=meta_f) + 34
+            for icon, val in ((_star, stars), (_fork, forks)):
+                mx = icon(d, mx, my + 10, c["meta"])
+                d.text((mx + 8, my), str(val), font=meta_f, fill=c["meta"])
+                mx += d.textlength(str(val), font=meta_f) + 30
+            im.save(OUT / "cards" / f"{name}-{theme}.png")
+            made.append(f"{name}-{theme}")
+    print(f"cards: {len(made)}")
+    return made
+
+
+def _star(d, x, cy, color):
+    """Drawn rather than typed: the meta font has no reliable star codepoint."""
+    r = 8.0
+    pts = []
+    for i in range(10):
+        ang = -math.pi / 2 + i * math.pi / 5
+        rad = r if i % 2 == 0 else r * 0.45
+        pts.append((x + rad * math.cos(ang), cy + rad * math.sin(ang)))
+    d.polygon(pts, fill=color)
+    return x + 2 * r
+
+
+def _fork(d, x, cy, color):
+    r = 3.4
+    for dy in (-7, 7):
+        d.ellipse([x + 4 - r, cy + dy - r, x + 4 + r, cy + dy + r], outline=color, width=2)
+    d.line([x + 4, cy - 4, x + 4, cy + 4], fill=color, width=2)
+    d.line([x + 4, cy, x + 14, cy], fill=color, width=2)
+    d.line([x + 14, cy - 7, x + 14, cy + 7], fill=color, width=2)
+    return x + 20
+
+
 def main():
     build_icons()
     build_badges()
+    build_pills()
+    build_cards()
     build_typing(DARK, "typing-dark.gif")
     build_typing(LIGHT, "typing-light.gif")
 
