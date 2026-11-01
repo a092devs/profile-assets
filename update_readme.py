@@ -1,77 +1,134 @@
-"""Rebuild the two icon blocks in the profile README from the files actually present
-in docs/icons, so the markup can never drift from what is deployed.
+"""Rebuild the profile README.
 
-Marks keep their intrinsic aspect ratio (height only is set), and Linux and X go through
-<picture> because their official artwork is drawn in black and needs a light copy for the
-dark theme.
+Layout notes, all learned the hard way against GitHub's renderer:
+
+* Cards go in <p align="center"> rows, not a <table>. GitHub's sanitizer drops
+  <picture>/<source> inside table cells, which silently blanked every card.
+* Social links are single badge images. Inline <img> plus text cannot be trusted to
+  align because each mark has different internal padding.
+* Stack marks carry valign="middle"; inline images default to baseline.
 """
-import json
 import pathlib
-import re
-import subprocess
 
 P = "https://a092devs.github.io/profile-assets/icons"
+B = "https://a092devs.github.io/profile-assets/badges"
+A = "https://raw.githubusercontent.com/a092devs/profile-assets/main/assets"
 
-LABELS = {
-    "kotlin": "Kotlin", "java": "Java", "cpp": "C++", "python": "Python",
-    "fastapi": "FastAPI", "nodejs": "Node.js", "react": "React",
-    "javascript": "JavaScript", "tailwindcss": "Tailwind CSS",
-    "postgresql": "PostgreSQL", "docker": "Docker", "git": "Git", "linux": "Linux",
-}
-ORDER = ["kotlin", "java", "cpp", "python", "fastapi", "nodejs", "react",
-         "javascript", "tailwindcss", "postgresql", "docker", "git", "linux"]
-H = 42
+STACK = [
+    ("kotlin", "Kotlin"), ("java", "Java"), ("cpp", "C++"), ("python", "Python"),
+    ("fastapi", "FastAPI"), ("nodejs", "Node.js"), ("react", "React"),
+    ("javascript", "JavaScript"), ("tailwindcss", "Tailwind CSS"),
+    ("postgresql", "PostgreSQL"), ("docker", "Docker"), ("git", "Git"),
+    ("linux", "Linux"),
+]
+
+CARDS = ["NexAlloyNext", "NexAlloyNext-Patches", "SystemFixes",
+         "GameUnlocker", "OpsVista", "DataFoundry"]
+
+HEIGHT = 42
 
 
-def img(key, height=H):
-    return (f'<img src="{P}/{key}.svg" height="{height}" '
-            f'alt="{LABELS.get(key, key)}" title="{LABELS.get(key, key)}" />')
+def mark(key, label, themed=False):
+    if themed:
+        return (
+            f'<picture>'
+            f'<source media="(prefers-color-scheme: dark)" srcset="{P}/{key}-dark.svg">'
+            f'<source media="(prefers-color-scheme: light)" srcset="{P}/{key}.svg">'
+            f'<img src="{P}/{key}.svg" height="{HEIGHT}" valign="middle" '
+            f'alt="{label}" title="{label}" /></picture>'
+        )
+    return (f'<img src="{P}/{key}.svg" height="{HEIGHT}" valign="middle" '
+            f'alt="{label}" title="{label}" />')
 
 
-def themed(key, label, height=H):
+def card(name):
     return (
-        f'<picture><source media="(prefers-color-scheme: dark)" srcset="{P}/{key}-dark.svg">'
-        f'<source media="(prefers-color-scheme: light)" srcset="{P}/{key}.svg">'
-        f'<img src="{P}/{key}.svg" height="{height}" alt="{label}" title="{label}" /></picture>'
+        f'<a href="https://github.com/a092devs/{name}"><picture>'
+        f'<source media="(prefers-color-scheme: dark)" srcset="{A}/cards/{name}-dark.png">'
+        f'<source media="(prefers-color-scheme: light)" srcset="{A}/cards/{name}-light.png">'
+        f'<img src="{A}/cards/{name}-dark.png" width="47%" alt="{name}" />'
+        f'</picture></a>'
     )
 
 
-stack = '<div align="center">\n\n' + "\n".join(
-    themed("linux", "Linux") if k == "linux" else img(k) for k in ORDER
-) + "\n\n</div>"
+def block(items):
+    return '<p align="center">\n\n' + "\n\n".join(items) + "\n\n</p>"
 
-social = " ".join([
-    f'<a href="https://www.linkedin.com/in/a092devs">{img("linkedin", 24)}'
-    f'&nbsp;<b>LinkedIn</b></a>',
-    f'<a href="https://twitter.com/a092devs">{themed("x", "X", 24)}&nbsp;<b>X</b></a>',
-    f'<a href="mailto:arsalanakhtar0@gmail.com">{img("gmail", 24)}&nbsp;<b>Email</b></a>',
+
+card_rows = [block([card(n) for n in CARDS[i:i + 2]]) for i in range(0, len(CARDS), 2)]
+
+stack_line = block([
+    " &nbsp; ".join(mark(k, l, themed=(k == "linux")) for k, l in STACK)
 ])
 
-# Start from whatever is live so the project cards and prose are not retyped by hand.
-live = subprocess.run(
-    ["gh", "api", "repos/a092devs/a092devs/contents/README.md", "--jq", ".content"],
-    capture_output=True, text=True, check=True).stdout
-s = pathlib.Path("profile_README.md").resolve()
+social_line = block([
+    " &nbsp;&nbsp;&nbsp; ".join(
+        f'<a href="{href}"><img src="{B}/{name}.png" height="30" alt="{alt}" /></a>'
+        for href, name, alt in [
+            ("https://www.linkedin.com/in/a092devs", "linkedin", "LinkedIn"),
+            ("https://twitter.com/a092devs", "x", "X"),
+            ("mailto:arsalanakhtar0@gmail.com", "_envelope-src", "Email"),
+        ]
+    )
+])
 
-import base64
-s.write_text(base64.b64decode(live).decode("utf-8"), encoding="utf-8")
-txt = s.read_text(encoding="utf-8")
+banner = (
+    '<picture>\n'
+    f'  <source media="(prefers-color-scheme: dark)" srcset="{A}/typing-dark.gif">\n'
+    f'  <source media="(prefers-color-scheme: light)" srcset="{A}/typing-light.gif">\n'
+    f'  <img src="{A}/typing-dark.gif" alt="Android, web and data work" width="620" />\n'
+    '</picture>'
+)
 
-# Replace the social line (the single long line holding the LinkedIn anchor).
-lines = txt.split("\n")
-for i, ln in enumerate(lines):
-    if "linkedin" in ln and "<a href=" in ln:
-        lines[i] = social
-        break
-else:
-    raise SystemExit("social line not found")
-txt = "\n".join(lines)
+stats = (
+    '<picture>\n'
+    f'  <source media="(prefers-color-scheme: dark)" srcset="{A}/stats-dark.png">\n'
+    f'  <source media="(prefers-color-scheme: light)" srcset="{A}/stats-light.png">\n'
+    f'  <img src="{A}/stats-dark.png" alt="GitHub stats" width="420" />\n'
+    '</picture>'
+)
 
-# Replace the Stack block.
-start = txt.index("### 🛠️ Stack")
-end = txt.index("\n</div>", start) + len("\n</div>")
-txt = txt[:start] + "### 🛠️ Stack\n\n" + stack + txt[end:]
+doc = f"""<div align="center">
 
-s.write_text(txt, encoding="utf-8")
-print("stack imgs:", len(re.findall(r"<img ", stack)), "| bytes:", len(txt))
-print("picture blocks:", txt.count("<picture>"))
+# Hi, I'm Arsalan \U0001f44b
+
+{banner}
+
+{social_line}
+
+</div>
+
+---
+
+I've always wanted to know where a decision actually gets made. In Android that's
+usually a layer below the app — a module, a patch, a flag in a config file nobody
+documented. On the web it's the database quietly disagreeing with the dashboard built
+on top of it. Most of what I do is reading code I didn't write and getting it to behave.
+
+---
+
+### \U0001f31f Selected work
+
+{chr(10).join(card_rows)}
+
+<p align="center">The rest of it lives in the <a href="https://github.com/a092devs?tab=repositories">repository list</a>.</p>
+
+---
+
+### \U0001f6e0\ufe0f Stack
+
+{stack_line}
+
+---
+
+<div align="center">
+
+{stats}
+
+</div>
+"""
+
+pathlib.Path("profile_README.md").write_text(doc, encoding="utf-8")
+b = doc.encode("utf-8")
+print("bytes:", len(b), "| backslashes:", b.count(bytes([92])))
+print("cards:", doc.count("cards/"), "| badges:", doc.count("/badges/"), "| marks:", doc.count(f"{P}/"))
