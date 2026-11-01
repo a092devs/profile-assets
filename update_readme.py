@@ -67,7 +67,7 @@ social_line = block([
         for href, name, alt in [
             ("https://www.linkedin.com/in/a092devs", "linkedin", "LinkedIn"),
             ("https://twitter.com/a092devs", "x", "X"),
-            ("mailto:arsalanakhtar0@gmail.com", "_envelope-src", "Email"),
+            ("mailto:arsalanakhtar0@gmail.com", "envelope-src", "Email"),
         ]
     )
 ])

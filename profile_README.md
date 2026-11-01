@@ -10,7 +10,7 @@
 
 <p align="center">
 
-<a href="https://www.linkedin.com/in/a092devs"><img src="https://a092devs.github.io/profile-assets/badges/linkedin.png" height="30" alt="LinkedIn" /></a> &nbsp;&nbsp;&nbsp; <a href="https://twitter.com/a092devs"><img src="https://a092devs.github.io/profile-assets/badges/x.png" height="30" alt="X" /></a> &nbsp;&nbsp;&nbsp; <a href="mailto:arsalanakhtar0@gmail.com"><img src="https://a092devs.github.io/profile-assets/badges/_envelope-src.png" height="30" alt="Email" /></a>
+<a href="https://www.linkedin.com/in/a092devs"><img src="https://a092devs.github.io/profile-assets/badges/linkedin.png" height="30" alt="LinkedIn" /></a> &nbsp;&nbsp;&nbsp; <a href="https://twitter.com/a092devs"><img src="https://a092devs.github.io/profile-assets/badges/x.png" height="30" alt="X" /></a> &nbsp;&nbsp;&nbsp; <a href="mailto:arsalanakhtar0@gmail.com"><img src="https://a092devs.github.io/profile-assets/badges/envelope-src.png" height="30" alt="Email" /></a>
 
 </p>
 

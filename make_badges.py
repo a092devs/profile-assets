@@ -26,7 +26,7 @@ LABEL_FONT = ImageFont.truetype(str(FONT_B), 19)
 BADGES = [
     ("linkedin", "LinkedIn", "0A66C2"),
     ("x", "X", "18181B"),
-    ("_envelope-src", "Email", "EA4335"),
+    ("envelope-src", "Email", "EA4335"),
 ]
 
 
