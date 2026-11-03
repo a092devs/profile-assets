@@ -139,7 +139,7 @@ LANG_COLORS = {
     "html": "#e34c26", "typescript": "#3178c6", "shell": "#89e051",
 }
 
-CARD_REPOS = ["NexAlloyNext", "NexAlloyNext-Patches", "SystemFixes",
+CARD_REPOS = ["NexFusion", "Nexfusion-Patches", "SystemFixes",
               "OpsVista", "DataFoundry", "GameUnlocker"]
 
 
@@ -199,6 +199,15 @@ def build_cards():
                 mx += d.textlength(str(val), font=meta_f) + 30
             im.save(OUT / "cards" / f"{name}-{theme}.png")
             made.append(f"{name}-{theme}")
+    # A renamed repo 301-redirects, so the API call still succeeds and would otherwise
+    # leave a card file under the dead name forever. Only prune when this run produced
+    # cards, so an API failure cannot blank the directory.
+    if made:
+        keep = {f"{m}.png" for m in made}
+        for stale in (OUT / "cards").glob("*.png"):
+            if stale.name not in keep:
+                stale.unlink()
+                print(f"  pruned stale card: {stale.name}")
     print(f"cards: {len(made)}")
     return made
 
