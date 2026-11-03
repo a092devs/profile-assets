@@ -139,23 +139,8 @@ LANG_COLORS = {
     "html": "#e34c26", "typescript": "#3178c6", "shell": "#89e051",
 }
 
-CARD_REPOS = ["NexFusion", "Nexfusion-Patches", "SystemFixes",
-              "OpsVista", "DataFoundry", "GameUnlocker"]
-
-# The nightly Action authenticates with a profile-assets-scoped token, which cannot read
-# a private repo. Without this fallback its card could only ever be rendered by hand on a
-# laptop, in a different font than every other card. Refresh these values when they drift.
-CARD_OVERRIDES = {
-    "SystemFixes": {
-        "description": ("OxygenOS 16 ROM fixes for Poco F7 (onyx): My Files 512GB "
-                        "capacity, per-slot Vo5G tracking the real voice radio "
-                        "technology, true 5G+ carrier aggregation, and VoNR "
-                        "registration on boot"),
-        "language": "Java",
-        "stargazers_count": 0,
-        "forks_count": 0,
-    },
-}
+CARD_REPOS = ["NexFusion", "Nexfusion-Patches", "OpsVista",
+              "DataFoundry", "GameUnlocker"]
 
 
 def build_cards():
@@ -174,11 +159,8 @@ def build_cards():
         try:
             info = api(f"repos/{USER}/{name}")
         except Exception as exc:
-            info = CARD_OVERRIDES.get(name)
-            if info is None:
-                print(f"  ! card {name}: {exc}")
-                continue
-            print(f"  card {name}: using pinned metadata ({exc})")
+            print(f"  ! card {name}: {exc}")
+            continue
         desc = (info.get("description") or "").strip()
         lang = info.get("language") or ""
         stars = info.get("stargazers_count", 0)
