@@ -142,6 +142,21 @@ LANG_COLORS = {
 CARD_REPOS = ["NexFusion", "Nexfusion-Patches", "SystemFixes",
               "OpsVista", "DataFoundry", "GameUnlocker"]
 
+# The nightly Action authenticates with a profile-assets-scoped token, which cannot read
+# a private repo. Without this fallback its card could only ever be rendered by hand on a
+# laptop, in a different font than every other card. Refresh these values when they drift.
+CARD_OVERRIDES = {
+    "SystemFixes": {
+        "description": ("OxygenOS 16 ROM fixes for Poco F7 (onyx): My Files 512GB "
+                        "capacity, per-slot Vo5G tracking the real voice radio "
+                        "technology, true 5G+ carrier aggregation, and VoNR "
+                        "registration on boot"),
+        "language": "Java",
+        "stargazers_count": 0,
+        "forks_count": 0,
+    },
+}
+
 
 def build_cards():
     """Repo cards in GitHub's pinned-card style, one dark and one light variant."""
@@ -159,8 +174,11 @@ def build_cards():
         try:
             info = api(f"repos/{USER}/{name}")
         except Exception as exc:
-            print(f"  ! card {name}: {exc}")
-            continue
+            info = CARD_OVERRIDES.get(name)
+            if info is None:
+                print(f"  ! card {name}: {exc}")
+                continue
+            print(f"  card {name}: using pinned metadata ({exc})")
         desc = (info.get("description") or "").strip()
         lang = info.get("language") or ""
         stars = info.get("stargazers_count", 0)
@@ -199,13 +217,13 @@ def build_cards():
                 mx += d.textlength(str(val), font=meta_f) + 30
             im.save(OUT / "cards" / f"{name}-{theme}.png")
             made.append(f"{name}-{theme}")
-    # A renamed repo 301-redirects, so the API call still succeeds and would otherwise
-    # leave a card file under the dead name forever. Only prune when this run produced
-    # cards, so an API failure cannot blank the directory.
-    if made:
-        keep = {f"{m}.png" for m in made}
+    # Prune by repo name, never by "did this run render it". A renamed repo 301-redirects,
+    # so the old name keeps producing a live orphan; but a card whose lookup merely failed
+    # this run (rate limit, private repo) must survive until it is genuinely off the list.
+    if CARD_REPOS:
         for stale in (OUT / "cards").glob("*.png"):
-            if stale.name not in keep:
+            stem = stale.name.rsplit("-", 1)[0]  # Nexfusion-Patches-dark.png -> Nexfusion-Patches
+            if stem not in CARD_REPOS:
                 stale.unlink()
                 print(f"  pruned stale card: {stale.name}")
     print(f"cards: {len(made)}")
